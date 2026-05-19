@@ -6,6 +6,8 @@ const users = [
     name: 'User',
     email: 'user@nextmail.com',
     password: '123456',
+    image_url: '/customers/evil-rabbit.png',
+    about: 'I am a software engineer and I love building cool things.',
   },
 ];
 

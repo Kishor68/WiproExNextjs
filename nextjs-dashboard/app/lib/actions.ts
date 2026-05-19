@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import postgres from 'postgres';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
+import bcrypt from 'bcryptjs';
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const FormSchema = z.object({
     id: z.string(),
@@ -119,4 +120,44 @@ export async function authenticate(
         }
         throw error;
     }
+}
+
+export async function updateProfile(
+  id: string,
+  prevState: State,
+  formData: FormData,
+): Promise<State> {
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+  const about = formData.get('about') as string;
+  const name = formData.get('name') as string;
+
+  if (!email || !name) {
+     return {
+         message: 'Missing Fields. Name and Email are required.',
+     };
+  }
+
+  try {
+      if (password) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await sql`
+            UPDATE users
+            SET email = ${email}, password = ${hashedPassword}, about = ${about}, name = ${name}
+            WHERE id = ${id}
+          `;
+      } else {
+          await sql`
+            UPDATE users
+            SET email = ${email}, about = ${about}, name = ${name}
+            WHERE id = ${id}
+          `;
+      }
+  } catch (error) {
+      console.error(error);
+      return { message: 'Database Error: Failed to Update Profile.' };
+  }
+
+  revalidatePath('/dashboard/profile');
+  return { message: 'Profile updated successfully.' };
 }
