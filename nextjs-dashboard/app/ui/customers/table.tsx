@@ -1,4 +1,6 @@
 import Image from 'next/image';
+import Link from 'next/link';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import { lusitana } from '@/app/ui/fonts';
 import Search from '@/app/ui/search';
 import {
@@ -8,15 +10,26 @@ import {
 
 export default async function CustomersTable({
   customers,
+  selectedCustomerId,
 }: {
   customers: FormattedCustomersTable[];
+  selectedCustomerId?: string;
 }) {
   return (
     <div className="w-full">
       <h1 className={`${lusitana.className} mb-8 text-xl md:text-2xl`}>
         Customers
       </h1>
-      <Search placeholder="Search customers..." />
+      <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
+        <Search placeholder="Search customers..." />
+        <Link
+          href="/dashboard/customers/create"
+          className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+        >
+          <span className="hidden md:block">Create Customer</span>{' '}
+          <PlusIcon className="h-5 md:ml-4" />
+        </Link>
+      </div>
       <div className="mt-6 flow-root">
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
@@ -56,8 +69,14 @@ export default async function CustomersTable({
                         <p className="font-medium">{customer.total_paid}</p>
                       </div>
                     </div>
-                    <div className="pt-4 text-sm">
+                    <div className="pt-4 text-sm flex justify-between items-center">
                       <p>{customer.total_invoices} invoices</p>
+                      <Link
+                        href={`/dashboard/customers?customerId=${customer.id}`}
+                        className="rounded-md bg-blue-500 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-400"
+                      >
+                        View Details
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -80,13 +99,21 @@ export default async function CustomersTable({
                     <th scope="col" className="px-4 py-5 font-medium">
                       Total Paid
                     </th>
+                    <th scope="col" className="px-4 py-5 font-medium sr-only">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-gray-200 text-gray-900">
                   {customers.map((customer) => (
-                    <tr key={customer.id} className="group">
-                      <td className="whitespace-nowrap bg-white py-5 pl-4 pr-3 text-sm text-black group-first-of-type:rounded-md group-last-of-type:rounded-md sm:pl-6">
+                    <tr
+                      key={customer.id}
+                      className={`group ${
+                        selectedCustomerId === customer.id ? 'bg-blue-50' : ''
+                      }`}
+                    >
+                      <td className="whitespace-nowrap bg-transparent py-5 pl-4 pr-3 text-sm text-black group-first-of-type:rounded-md group-last-of-type:rounded-md sm:pl-6">
                         <div className="flex items-center gap-3">
                           <Image
                             src={customer.image_url}
@@ -98,17 +125,25 @@ export default async function CustomersTable({
                           <p>{customer.name}</p>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
+                      <td className="whitespace-nowrap bg-transparent px-4 py-5 text-sm">
                         {customer.email}
                       </td>
-                      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
+                      <td className="whitespace-nowrap bg-transparent px-4 py-5 text-sm">
                         {customer.total_invoices}
                       </td>
-                      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
+                      <td className="whitespace-nowrap bg-transparent px-4 py-5 text-sm">
                         {customer.total_pending}
                       </td>
-                      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm group-first-of-type:rounded-md group-last-of-type:rounded-md">
+                      <td className="whitespace-nowrap bg-transparent px-4 py-5 text-sm group-first-of-type:rounded-md group-last-of-type:rounded-md">
                         {customer.total_paid}
+                      </td>
+                      <td className="whitespace-nowrap bg-transparent px-4 py-5 text-sm">
+                        <Link
+                          href={`/dashboard/customers?customerId=${customer.id}`}
+                          className="rounded-md bg-blue-500 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-400"
+                        >
+                          View Details
+                        </Link>
                       </td>
                     </tr>
                   ))}

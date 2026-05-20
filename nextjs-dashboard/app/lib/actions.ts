@@ -6,6 +6,8 @@ import postgres from 'postgres';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import bcrypt from 'bcryptjs';
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const FormSchema = z.object({
     id: z.string(),
@@ -131,6 +133,7 @@ export async function updateProfile(
   const password = formData.get('password') as string;
   const about = formData.get('about') as string;
   const name = formData.get('name') as string;
+  const image = formData.get('image') as File | null;
 
   if (!email || !name) {
      return {
@@ -138,20 +141,51 @@ export async function updateProfile(
      };
   }
 
+  let imageUrl: string | undefined;
+
+  if (image && image.size > 0) {
+    try {
+      const bytes = await image.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const filename = `${Date.now()}-${image.name.replace(/\\s+/g, '_')}`;
+      const path = join(process.cwd(), 'public', 'customers', filename);
+      await writeFile(path, buffer);
+      imageUrl = `/customers/${filename}`;
+    } catch (e) {
+      console.error('Failed to write image to disk', e);
+    }
+  }
+
   try {
       if (password) {
           const hashedPassword = await bcrypt.hash(password, 10);
-          await sql`
-            UPDATE users
-            SET email = ${email}, password = ${hashedPassword}, about = ${about}, name = ${name}
-            WHERE id = ${id}
-          `;
+          if (imageUrl) {
+            await sql`
+              UPDATE users
+              SET email = ${email}, password = ${hashedPassword}, about = ${about}, name = ${name}, image_url = ${imageUrl}
+              WHERE id = ${id}
+            `;
+          } else {
+            await sql`
+              UPDATE users
+              SET email = ${email}, password = ${hashedPassword}, about = ${about}, name = ${name}
+              WHERE id = ${id}
+            `;
+          }
       } else {
-          await sql`
-            UPDATE users
-            SET email = ${email}, about = ${about}, name = ${name}
-            WHERE id = ${id}
-          `;
+          if (imageUrl) {
+            await sql`
+              UPDATE users
+              SET email = ${email}, about = ${about}, name = ${name}, image_url = ${imageUrl}
+              WHERE id = ${id}
+            `;
+          } else {
+            await sql`
+              UPDATE users
+              SET email = ${email}, about = ${about}, name = ${name}
+              WHERE id = ${id}
+            `;
+          }
       }
   } catch (error) {
       console.error(error);
@@ -160,4 +194,68 @@ export async function updateProfile(
 
   revalidatePath('/dashboard/profile');
   return { message: 'Profile updated successfully.' };
+}
+
+export type CustomerState = {
+  errors?: {
+    name?: string[];
+    email?: string[];
+    image?: string[];
+  };
+  message?: string | null;
+};
+
+const CustomerSchema = z.object({
+  name: z.string().min(1, { message: 'Please enter a name.' }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+});
+
+export async function createCustomer(
+  prevState: CustomerState,
+  formData: FormData,
+): Promise<CustomerState> {
+  const validatedFields = CustomerSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create Customer.',
+    };
+  }
+
+  const { name, email } = validatedFields.data;
+  const image = formData.get('image') as File | null;
+  
+  let imageUrl = '/customers/evil-rabbit.png'; // Default image
+
+  if (image && image.size > 0) {
+    try {
+      const bytes = await image.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const filename = `${Date.now()}-${image.name.replace(/\\s+/g, '_')}`;
+      const path = join(process.cwd(), 'public', 'customers', filename);
+      await writeFile(path, buffer);
+      imageUrl = `/customers/${filename}`;
+    } catch (e) {
+      console.error('Failed to write image to disk', e);
+    }
+  }
+
+  try {
+    await sql`
+      INSERT INTO customers (name, email, image_url)
+      VALUES (${name}, ${email}, ${imageUrl})
+    `;
+  } catch (error) {
+    console.error(error);
+    return {
+      message: 'Database Error: Failed to Create Customer.',
+    };
+  }
+
+  revalidatePath('/dashboard/customers');
+  redirect('/dashboard/customers');
 }

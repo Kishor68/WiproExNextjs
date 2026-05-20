@@ -2,6 +2,7 @@ import postgres from 'postgres';
 import {
   CustomerField,
   CustomersTableType,
+  Invoice,
   InvoiceForm,
   InvoicesTable,
   LatestInvoiceRaw,
@@ -214,5 +215,54 @@ export async function fetchFilteredCustomers(query: string) {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch customer table.');
+  }
+}
+
+export async function fetchCustomerById(id: string) {
+  try {
+    const data = await sql<CustomersTableType[]>`
+		SELECT
+		  customers.id,
+		  customers.name,
+		  customers.email,
+		  customers.image_url,
+		  COUNT(invoices.id) AS total_invoices,
+		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
+		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
+		FROM customers
+		LEFT JOIN invoices ON customers.id = invoices.customer_id
+		WHERE customers.id = ${id}
+		GROUP BY customers.id, customers.name, customers.email, customers.image_url
+	  `;
+
+    const customers = data.map((customer) => ({
+      ...customer,
+      total_pending: formatCurrency(customer.total_pending),
+      total_paid: formatCurrency(customer.total_paid),
+    }));
+
+    return customers[0];
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch customer.');
+  }
+}
+
+export async function fetchCustomerInvoices(id: string) {
+  try {
+    const invoices = await sql<Invoice[]>`
+      SELECT
+        id,
+        amount,
+        status,
+        date
+      FROM invoices
+      WHERE customer_id = ${id}
+      ORDER BY date DESC
+    `;
+    return invoices;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch customer invoices.');
   }
 }
