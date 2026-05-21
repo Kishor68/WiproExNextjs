@@ -124,6 +124,67 @@ export async function authenticate(
     }
 }
 
+const RegisterSchema = z.object({
+  name: z.string().min(1, { message: 'Please enter your name.' }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+});
+
+export async function registerUser(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  const validatedFields = RegisterSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+  });
+
+  if (!validatedFields.success) {
+    return 'Please enter a valid name, email, and password.';
+  }
+
+  const { name, email, password } = validatedFields.data;
+  const image = formData.get('image') as File | null;
+
+  try {
+    const existingUser = await sql<{ email: string }[]>`
+      SELECT email FROM users WHERE email = ${email}
+    `;
+
+    if (existingUser.length > 0) {
+      return 'That email is already taken.';
+    }
+
+    let imageUrl = '/customers/evil-rabbit.png';
+
+    if (image && image.size > 0) {
+      try {
+        const bytes = await image.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const filename = `${Date.now()}-${image.name.replace(/\s+/g, '_')}`;
+        const path = join(process.cwd(), 'public', 'customers', filename);
+        await writeFile(path, buffer);
+        imageUrl = `/customers/${filename}`;
+      } catch (e) {
+        console.error('Failed to write image to disk', e);
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await sql`
+      INSERT INTO users (name, email, password, image_url, about)
+      VALUES (${name}, ${email}, ${hashedPassword}, ${imageUrl}, '')
+    `;
+
+    return 'Registration successful. Please log in with your new account.';
+  } catch (error) {
+    console.error(error);
+    return 'Database Error: Failed to register.';
+  }
+}
+
 export async function updateProfile(
   id: string,
   prevState: State,
