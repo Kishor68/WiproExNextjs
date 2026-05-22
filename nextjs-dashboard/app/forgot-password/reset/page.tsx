@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import ResetPasswordForm from '@/app/ui/reset-password-form';
 import AcmeLogo from '@/app/ui/acme-logo';
 import { Metadata } from 'next';
@@ -15,7 +16,9 @@ export default function ResetPasswordPage() {
             <AcmeLogo />
           </div>
         </div>
-        <ResetPasswordForm />
+        <Suspense fallback={<div className="text-center text-sm text-gray-500">Loading...</div>}>
+          <ResetPasswordForm />
+        </Suspense>
       </div>
     </main>
   );
