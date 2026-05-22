@@ -1,12 +1,13 @@
-import Form from '@/app/ui/customers/create-form';
+import UsersTable from '@/app/ui/dashboard/users-table';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
-import { Metadata } from 'next';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import { Metadata } from 'next';
+import { fetchAllUsers } from '@/app/lib/data';
 import type { Session } from 'next-auth';
 
 export const metadata: Metadata = {
-  title: 'Create Customer Account',
+  title: 'Users',
 };
 
 export default async function Page() {
@@ -17,19 +18,19 @@ export default async function Page() {
     redirect('/dashboard');
   }
 
+  const users = await fetchAllUsers();
+
   return (
     <main>
       <Breadcrumbs
         breadcrumbs={[
-          { label: 'Customers', href: '/dashboard/customers' },
-          {
-            label: 'Create Customer',
-            href: '/dashboard/customers/create',
-            active: true,
-          },
+          { label: 'Users', href: '/dashboard/users', active: true },
         ]}
       />
-      <Form />
+      <div className="mt-6 w-full">
+        {/* @ts-expect-error Server -> Client */}
+        <UsersTable users={users} />
+      </div>
     </main>
   );
 }

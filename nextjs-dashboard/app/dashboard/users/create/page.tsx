@@ -1,12 +1,12 @@
-import Form from '@/app/ui/customers/create-form';
+import CreateUserForm from '@/app/ui/dashboard/create-user-form';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
-import { Metadata } from 'next';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import { Metadata } from 'next';
 import type { Session } from 'next-auth';
 
 export const metadata: Metadata = {
-  title: 'Create Customer Account',
+  title: 'Register User',
 };
 
 export default async function Page() {
@@ -21,15 +21,13 @@ export default async function Page() {
     <main>
       <Breadcrumbs
         breadcrumbs={[
-          { label: 'Customers', href: '/dashboard/customers' },
-          {
-            label: 'Create Customer',
-            href: '/dashboard/customers/create',
-            active: true,
-          },
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Register User', href: '/dashboard/users/create', active: true },
         ]}
       />
-      <Form />
+      <div className="mt-6 w-full max-w-2xl">
+        <CreateUserForm />
+      </div>
     </main>
   );
 }

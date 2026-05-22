@@ -13,17 +13,44 @@ async function seedUsers() {
       email TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
       image_url TEXT,
-      about TEXT
+      about TEXT,
+      role TEXT NOT NULL DEFAULT 'customer',
+      password_reset_token TEXT,
+      password_reset_token_expiry BIGINT
     );
   `;
+  
+  // Add columns if they don't exist (for existing databases)
+  try {
+    await sql`
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS password_reset_token TEXT,
+      ADD COLUMN IF NOT EXISTS password_reset_token_expiry BIGINT;
+    `;
+  } catch (e) {
+    console.log('Columns might already exist');
+  }
+
+  try {
+    await sql`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'customer';
+    `;
+  } catch (e) {
+    console.log('Role column might already exist');
+  }
 
   const insertedUsers = await Promise.all(
     users.map(async (user) => {
       const hashedPassword = await bcrypt.hash(user.password, 10);
       return sql`
-        INSERT INTO users (id, name, email, password, image_url, about)
-        VALUES (${user.id}, ${user.name}, ${user.email}, ${hashedPassword}, ${user.image_url}, ${user.about})
-        ON CONFLICT (id) DO NOTHING;
+        INSERT INTO users (id, name, email, password, image_url, about, role)
+        VALUES (${user.id}, ${user.name}, ${user.email}, ${hashedPassword}, ${user.image_url}, ${user.about}, ${user.role ?? 'customer'})
+        ON CONFLICT (id) DO UPDATE SET 
+          role = ${user.role ?? 'customer'},
+          name = ${user.name},
+          about = ${user.about},
+          image_url = ${user.image_url};
       `;
     }),
   );
@@ -82,6 +109,24 @@ async function seedCustomers() {
   return insertedCustomers;
 }
 
+async function seedCustomerAccounts() {
+  // Create user accounts for any customers that don't have users yet.
+  const inserted = await Promise.all(
+    customers.map(async (c) => {
+      // default password for seeded customer accounts
+      const defaultPassword = 'changeme';
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+      return sql`
+        INSERT INTO users (id, name, email, password, image_url, about, role)
+        VALUES (${c.id}, ${c.name}, ${c.email}, ${hashedPassword}, ${c.image_url}, '', 'customer')
+        ON CONFLICT (email) DO NOTHING;
+      `;
+    }),
+  );
+
+  return inserted;
+}
+
 async function seedRevenue() {
   await sql`
     CREATE TABLE IF NOT EXISTS revenue (
@@ -108,6 +153,7 @@ export async function GET() {
     const result = await sql.begin((sql) => [
       seedUsers(),
       seedCustomers(),
+      seedCustomerAccounts(),
       seedInvoices(),
       seedRevenue(),
     ]);

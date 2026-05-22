@@ -8,6 +8,7 @@ const users = [
     password: '123456',
     image_url: '/customers/evil-rabbit.png',
     about: 'I am a software engineer and I love building cool things.',
+    role: 'admin',
   },
 ];
 

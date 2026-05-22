@@ -4,6 +4,7 @@ import {
   HomeIcon,
   DocumentDuplicateIcon,
   UserIcon,
+  UserPlusIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import clsx from 'clsx';
@@ -21,11 +22,19 @@ const links = [
   { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
 ];
 
-export default function NavLinks() {
+export default function NavLinks({ role }: { role?: string }) {
   const pathname = usePathname();
+  const items = role === 'admin'
+    ? [
+        ...links,
+        { name: 'Users', href: '/dashboard/users', icon: UserGroupIcon },
+        { name: 'Create Customer', href: '/dashboard/customers/create', icon: UserIcon },
+        { name: 'Register User', href: '/dashboard/users/create', icon: UserPlusIcon },
+      ]
+    : links;
   return (
     <>
-      {links.map((link) => {
+      {items.map((link) => {
         const LinkIcon = link.icon;
         return (
           <Link

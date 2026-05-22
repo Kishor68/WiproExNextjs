@@ -91,6 +91,25 @@ export default function ProfileForm({ user }: { user: User }) {
           </div>
         </div>
 
+        {/* Role */}
+        <div className="mb-4">
+          <label htmlFor="role" className="mb-2 block text-sm font-medium">
+            Role
+          </label>
+          <div className="relative">
+            <input
+              id="role"
+              name="role"
+              type="text"
+              defaultValue={user.role || 'customer'}
+              className="peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500 bg-gray-100 text-gray-700 disabled:bg-gray-100 disabled:text-gray-500 cursor-not-allowed"
+              disabled
+            />
+            <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
+          </div>
+          <p className="mt-1 text-xs text-gray-500">Your account role cannot be changed here</p>
+        </div>
+
         {/* Password */}
         {isEditing && (
           <div className="mb-4">

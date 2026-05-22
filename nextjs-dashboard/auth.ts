@@ -1,4 +1,6 @@
 import NextAuth from 'next-auth';
+import type { AdapterUser } from 'next-auth/adapters';
+import type { Session } from 'next-auth';
 import { authConfig } from './auth.config';
 import { z } from 'zod';
 import Credentials from 'next-auth/providers/credentials';
@@ -17,7 +19,13 @@ async function getUser(email: string): Promise<User | undefined> {
         throw new Error('Failed to fetch user.');
     }
 }
-export const { auth, signIn, signOut } = NextAuth({
+
+type AuthToken = { id?: string; role?: 'admin' | 'customer' } & Record<string, any>;
+type AuthSession = Session & {
+    user: Session['user'] & { id?: string; role?: 'admin' | 'customer' };
+};
+
+const nextAuthHandler = NextAuth({
     ...authConfig,
     providers: [Credentials({
         async authorize(credentials) {
@@ -36,4 +44,22 @@ export const { auth, signIn, signOut } = NextAuth({
         },
     }),
     ],
+    callbacks: {
+        async jwt({ token, user }) {
+            if (user) {
+                token.id = user.id;
+                token.role = ('role' in user ? user.role : undefined) ?? 'customer';
+            }
+            return token;
+        },
+        async session({ session, token }) {
+            if (session.user) {
+                (session.user as any).id = token.id;
+                (session.user as any).role = token.role;
+            }
+            return session;
+        },
+    },
 });
+
+export const { auth, signIn, signOut } = nextAuthHandler;
