@@ -1,5 +1,6 @@
 import '@/app/ui/global.css';
 import { inter } from '@/app/ui/fonts';
+import ServiceWorkerRegistration from '@/app/ui/service-worker-registration';
 import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: {
@@ -8,6 +9,10 @@ export const metadata: Metadata = {
   },
   description: 'The official Next.js Learn Dashboard built with App Router.',
   metadataBase: new URL('https://next-learn-dashboard.vercel.sh'),
+  icons: {
+    icon: '/favicon.ico',
+  },
+  manifest: '/manifest.webmanifest',
 };
 export default function RootLayout({
   children,
@@ -16,7 +21,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#2563eb" />
+      </head>
+      <body className={`${inter.className} antialiased`}>
+        {children}
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   );
 }
