@@ -1,6 +1,8 @@
 import '@/app/ui/global.css';
 import { inter } from '@/app/ui/fonts';
+import { Suspense } from 'react';
 import ServiceWorkerRegistration from '@/app/ui/service-worker-registration';
+import NotificationCenter from '@/app/ui/notification-center';
 import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: {
@@ -10,7 +12,7 @@ export const metadata: Metadata = {
   description: 'The official Next.js Learn Dashboard built with App Router.',
   metadataBase: new URL('https://next-learn-dashboard.vercel.sh'),
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.svg',
   },
   manifest: '/manifest.webmanifest',
 };
@@ -27,6 +29,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} antialiased`}>
         {children}
+        <Suspense fallback={null}>
+          <NotificationCenter />
+        </Suspense>
         <ServiceWorkerRegistration />
       </body>
     </html>

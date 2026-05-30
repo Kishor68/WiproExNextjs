@@ -428,7 +428,7 @@ export async function createCustomer(
   }
 
   revalidatePath('/dashboard/customers');
-  redirect('/dashboard/customers');
+  redirect('/dashboard/customers?notification=customer-created');
 }
 
 // Password Reset Functions

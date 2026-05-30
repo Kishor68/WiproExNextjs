@@ -12,9 +12,21 @@ import { authenticate } from '@/app/lib/actions';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+function withLoginNotification(redirectTo: string) {
+  const url = new URL(redirectTo, 'http://localhost');
+  url.searchParams.set('notification', 'login');
+
+  if (redirectTo.startsWith('http://') || redirectTo.startsWith('https://')) {
+    return url.toString();
+  }
+
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 export default function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const redirectTo = withLoginNotification(callbackUrl);
 
   const [loginMessage, loginAction, loginPending] = useActionState(
     authenticate,
@@ -79,7 +91,7 @@ export default function LoginForm() {
           </div>
         </div>
 
-        <input type="hidden" name="redirectTo" value={callbackUrl} />
+        <input type="hidden" name="redirectTo" value={redirectTo} />
         <Button className="mt-4 w-full" aria-disabled={loginPending}>
           Log in <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
         </Button>

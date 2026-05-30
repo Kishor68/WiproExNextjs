@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
 import {
   UserCircleIcon,
   AtSymbolIcon,
@@ -10,10 +10,17 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
 import { createDashboardUser, RegisterState } from '@/app/lib/actions';
+import { notify } from '@/app/ui/notification-center';
 
 export default function CreateUserForm() {
   const initialState: RegisterState = { message: null, errors: {} };
   const [state, formAction] = useActionState(createDashboardUser, initialState);
+
+  useEffect(() => {
+    if (state.message === 'User registered successfully.') {
+      notify('User registered successfully.');
+    }
+  }, [state.message]);
 
   return (
     <form action={formAction} className="space-y-6">

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Background -->
+  <rect width="256" height="256" fill="#2563eb" rx="32"/>
+  
+  <!-- Letter "A" for Acme -->
+  <g fill="#ffffff">
+    <!-- Left diagonal -->
+    <path d="M 48 200 L 128 40 L 128 50 L 65 200 Z" />
+    
+    <!-- Right diagonal -->
+    <path d="M 128 50 L 208 200 L 191 200 L 128 60 Z" />
+    
+    <!-- Horizontal bar -->
+    <rect x="80" y="130" width="96" height="16" />
+  </g>
+</svg>
