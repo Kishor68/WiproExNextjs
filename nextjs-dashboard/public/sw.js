@@ -1,14 +1,11 @@
-const CACHE_NAME = 'acme-dashboard-v3';
+const CACHE_NAME = 'acme-dashboard-v4';
 const PRECACHE_URLS = [
-  '/',
-  '/login',
-  '/dashboard',
-  '/dashboard/invoices',
-  '/dashboard/customers',
-  '/dashboard/users',
-  '/dashboard/profile',
   '/favicon.svg',
   '/manifest.webmanifest',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-maskable-192.png',
+  '/icon-maskable-512.png',
 ];
 
 self.addEventListener('install', (event) => {

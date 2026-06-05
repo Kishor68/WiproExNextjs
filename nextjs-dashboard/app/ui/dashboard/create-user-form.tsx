@@ -17,8 +17,8 @@ export default function CreateUserForm() {
   const [state, formAction] = useActionState(createDashboardUser, initialState);
 
   useEffect(() => {
-    if (state.message === 'User registered successfully.') {
-      notify('User registered successfully.');
+    if (state.message?.includes('created successfully')) {
+      notify(state.message);
     }
   }, [state.message]);
 

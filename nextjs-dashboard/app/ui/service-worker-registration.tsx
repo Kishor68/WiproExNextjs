@@ -2,6 +2,26 @@
 
 import { useEffect } from 'react';
 
+type WindowWithServiceWorkerHelper = typeof window & {
+  reRegisterServiceWorker?: typeof registerSW;
+};
+
+async function cleanupDevelopmentSW() {
+  if (!('serviceWorker' in navigator)) return;
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames
+        .filter((cacheName) => cacheName.startsWith('acme-dashboard-'))
+        .map((cacheName) => caches.delete(cacheName)),
+    );
+  }
+}
+
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
@@ -21,6 +41,13 @@ async function registerSW() {
 
 export default function ServiceWorkerRegistration() {
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      cleanupDevelopmentSW().catch((error) => {
+        console.error('Development service worker cleanup failed:', error);
+      });
+      return;
+    }
+
     // Try to register immediately on mount
     registerSW().catch(() => {});
 
@@ -31,9 +58,8 @@ export default function ServiceWorkerRegistration() {
     // Expose a helper for manual re-registration from the console:
     // Run `window.reRegisterServiceWorker()` in the browser console.
     try {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      window.reRegisterServiceWorker = registerSW;
+      (window as WindowWithServiceWorkerHelper).reRegisterServiceWorker =
+        registerSW;
     } catch (e) {
       // ignore
     }
@@ -41,9 +67,8 @@ export default function ServiceWorkerRegistration() {
     return () => {
       window.removeEventListener('focus', onFocus);
       try {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        delete window.reRegisterServiceWorker;
+        delete (window as WindowWithServiceWorkerHelper)
+          .reRegisterServiceWorker;
       } catch (e) {
         // ignore
       }

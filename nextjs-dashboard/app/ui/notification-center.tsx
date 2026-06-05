@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 type NotificationType = 'success' | 'error';
 
 type Notification = {
-  id: number;
+  id: number | string;
   message: string;
   type: NotificationType;
 };
@@ -62,8 +62,9 @@ export default function NotificationCenter() {
     const addNotification = (
       message: string,
       type: NotificationType = 'success',
+      notificationId: number | string = crypto.randomUUID(),
     ) => {
-      const id = Date.now();
+      const id = notificationId;
       setNotifications((current) => [
         ...current,
         {
@@ -93,6 +94,54 @@ export default function NotificationCenter() {
     window.addEventListener('app-notification', onNotification);
     return () => window.removeEventListener('app-notification', onNotification);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function showUnreadNotifications() {
+      try {
+        const response = await fetch('/api/notifications');
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as {
+          notifications?: Array<{
+            id: string;
+            message: string;
+            type?: NotificationType;
+          }>;
+        };
+
+        const unreadNotifications = data.notifications ?? [];
+        if (cancelled || unreadNotifications.length === 0) {
+          return;
+        }
+
+        unreadNotifications.forEach((notification) => {
+          notify(notification.message, notification.type ?? 'success');
+        });
+
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ids: unreadNotifications.map((notification) => notification.id),
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to load notifications:', error);
+      }
+    }
+
+    showUnreadNotifications();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (!notificationKey || lastUrlNotification.current === notificationKey) {

@@ -10,8 +10,39 @@ import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { Resend } from 'resend';
 import { randomBytes, randomUUID } from 'crypto';
+import { createInvoiceNotificationForCustomer } from '@/app/lib/notifications';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+async function saveUploadedProfileImage(image: File | null) {
+  if (!image || image.size === 0) {
+    return { imageUrl: undefined };
+  }
+
+  if (!ALLOWED_IMAGE_TYPES.includes(image.type)) {
+    return { error: 'Please upload a JPG, PNG, or WebP image.' };
+  }
+
+  if (image.size > MAX_IMAGE_SIZE_BYTES) {
+    return { error: 'Please upload an image smaller than 4 MB.' };
+  }
+
+  try {
+    const bytes = await image.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const filename = `${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const path = join(process.cwd(), 'public', 'customers', filename);
+    await writeFile(path, buffer);
+
+    return { imageUrl: `/customers/${filename}` };
+  } catch (error) {
+    console.error('Failed to write image to disk', error);
+    return { error: 'Failed to upload profile image.' };
+  }
+}
+
 const FormSchema = z.object({
     id: z.string(),
     customerId: z.string({
@@ -52,6 +83,13 @@ export async function createInvoice(prevState: State, formData: FormData) {
             message: 'Database Error: Failed to Create Invoice.',
         };
     }
+
+    try {
+        await createInvoiceNotificationForCustomer(customerId, amountInCents);
+    } catch (error) {
+        console.error('Failed to create invoice notification:', error);
+    }
+
     revalidatePath('/dashboard/invoices');
     redirect('/dashboard/invoices');
 }
@@ -161,17 +199,12 @@ export async function registerUser(
 
     let imageUrl = '/customers/evil-rabbit.png';
 
-    if (image && image.size > 0) {
-      try {
-        const bytes = await image.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const filename = `${Date.now()}-${image.name.replace(/\s+/g, '_')}`;
-        const path = join(process.cwd(), 'public', 'customers', filename);
-        await writeFile(path, buffer);
-        imageUrl = `/customers/${filename}`;
-      } catch (e) {
-        console.error('Failed to write image to disk', e);
-      }
+    const upload = await saveUploadedProfileImage(image);
+    if (upload.error) {
+      return upload.error;
+    }
+    if (upload.imageUrl) {
+      imageUrl = upload.imageUrl;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -228,17 +261,14 @@ export async function createDashboardUser(
   const image = formData.get('image') as File | null;
   let imageUrl = '/customers/evil-rabbit.png';
 
-  if (image && image.size > 0) {
-    try {
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const filename = `${Date.now()}-${image.name.replace(/\s+/g, '_')}`;
-      const path = join(process.cwd(), 'public', 'customers', filename);
-      await writeFile(path, buffer);
-      imageUrl = `/customers/${filename}`;
-    } catch (e) {
-      console.error('Failed to write image to disk', e);
-    }
+  const upload = await saveUploadedProfileImage(image);
+  if (upload.error) {
+    return {
+      message: upload.error,
+    };
+  }
+  if (upload.imageUrl) {
+    imageUrl = upload.imageUrl;
   }
 
   try {
@@ -260,7 +290,7 @@ export async function createDashboardUser(
     `;
 
     return {
-      message: 'User registered successfully.',
+      message: `${role === 'admin' ? 'Admin' : 'Customer'} user ${name} was created successfully.`,
     };
   } catch (error) {
     console.error(error);
@@ -289,17 +319,14 @@ export async function updateProfile(
 
   let imageUrl: string | undefined;
 
-  if (image && image.size > 0) {
-    try {
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const filename = `${Date.now()}-${image.name.replace(/\\s+/g, '_')}`;
-      const path = join(process.cwd(), 'public', 'customers', filename);
-      await writeFile(path, buffer);
-      imageUrl = `/customers/${filename}`;
-    } catch (e) {
-      console.error('Failed to write image to disk', e);
-    }
+  const upload = await saveUploadedProfileImage(image);
+  if (upload.error) {
+    return {
+      message: upload.error,
+    };
+  }
+  if (upload.imageUrl) {
+    imageUrl = upload.imageUrl;
   }
 
   try {
@@ -380,17 +407,14 @@ export async function createCustomer(
   
   let imageUrl = '/customers/evil-rabbit.png'; // Default image
 
-  if (image && image.size > 0) {
-    try {
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const filename = `${Date.now()}-${image.name.replace(/\\s+/g, '_')}`;
-      const path = join(process.cwd(), 'public', 'customers', filename);
-      await writeFile(path, buffer);
-      imageUrl = `/customers/${filename}`;
-    } catch (e) {
-      console.error('Failed to write image to disk', e);
-    }
+  const upload = await saveUploadedProfileImage(image);
+  if (upload.error) {
+    return {
+      message: upload.error,
+    };
+  }
+  if (upload.imageUrl) {
+    imageUrl = upload.imageUrl;
   }
 
   try {
