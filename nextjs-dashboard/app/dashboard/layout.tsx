@@ -1,5 +1,6 @@
 import SideNav from '@/app/ui/dashboard/sidenav';
 import { auth } from '@/auth';
+import IdleSessionTimeout from '@/app/ui/idle-session-timeout';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
         <SideNav role={(session?.user as any)?.role} />
             </div>
             <div className="grow p-6 md:overflow-y-auto md:p-12">{children}</div>
+            <IdleSessionTimeout />
         </div>
     );
 }

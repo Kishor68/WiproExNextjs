@@ -32,6 +32,11 @@ const notificationMessages: Record<string, Notification> = {
     message: 'Customer account created successfully.',
     type: 'success',
   },
+  'session-expired': {
+    id: 0,
+    message: 'Your session expired due to inactivity. Please log in again.',
+    type: 'error',
+  },
 };
 
 export function notify(message: string, type: NotificationType = 'success') {
